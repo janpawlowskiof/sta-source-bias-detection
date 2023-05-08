@@ -1,5 +1,6 @@
 # API authorization
 .netrc
+.api_auth
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
