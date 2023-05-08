@@ -1,0 +1,6 @@
+[core]
+    remote = clarinremote
+    autostage = true
+['remote "clarinremote"']
+    url = s3://resources/dialogue-systems/sta-source-bias-detection
+    endpointurl = https://s3.clarin-pl.eu/
