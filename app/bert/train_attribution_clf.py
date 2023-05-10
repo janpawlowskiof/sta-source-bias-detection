@@ -16,32 +16,33 @@ class AttributionDataset(torch.utils.data.Dataset):
     def __len__(self):
         return len(self.labels)
 
+
 class AttributionClassifierTrainer:
-    def __init__(self, data_file):
+    def __init__(self, data_file: str):
         self.data_file = data_file
         self.tokenizer = AutoTokenizer.from_pretrained("EMBEDDIA/sloberta")
         self.model = AutoModelForSequenceClassification.from_pretrained("EMBEDDIA/sloberta")
         self.model.to('cuda')
 
-    def train(self):
+    def train(self, out_dir: str = './saved_model/results'):
         train_dataset = self._load_data(self.data_file)
 
         training_args = TrainingArguments(
-            output_dir='./saved_model/results',
+            output_dir=out_dir,
             num_train_epochs=3,
             per_device_train_batch_size=16,
-            # per_device_eval_batch_size=64,
             warmup_steps=500,
             weight_decay=0.01,
             logging_dir='./saved_model/logs',
             logging_steps=10,
+            save_strategy="epoch",
+            overwrite_output_dir=True
         )
 
         trainer = Trainer(
             model=self.model,
             args=training_args,
             train_dataset=train_dataset,
-            # eval_dataset=val_dataset
         )
 
         trainer.train()
