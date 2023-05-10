@@ -12,7 +12,7 @@ from app.exact_matching.match_media import MediaMatcher
 from app.gpt_processing.cleanup import GPT35EntitiesCleaner
 from app.gpt_processing.gpt35_api import GPT35Paraphraser
 from app.gpt_processing.caching import CachingParaphraser
-from app.utils import load_entites_csv
+from app.utils import dump_json, load_entites_csv
 from app.lemma import StanzaLemma
 
 
@@ -43,8 +43,7 @@ def cleanup_entities(
     cleaner = GPT35EntitiesCleaner()
     output_rows = cleaner.cleanup_responses(rows)
 
-    output_df = pd.DataFrame.from_records(output_rows)
-    output_df.to_json(output_path, lines=True, force_ascii=False, orient="records")
+    dump_json(output_rows, output_path.with_suffix(".json"))
 
 
 @typer_app.command()
