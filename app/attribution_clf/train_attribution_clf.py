@@ -34,11 +34,11 @@ class AttributionClassifierTrainer:
 
         training_args = TrainingArguments(
             output_dir=out_dir,
-            num_train_epochs=20,
+            num_train_epochs=10,
             per_device_train_batch_size=48,
             warmup_steps=50,
             weight_decay=0.001,
-            learning_rate=8e-6,
+            learning_rate=1e-5,
             logging_dir='./saved_model/logs',
             logging_steps=10,
             save_strategy="epoch",
@@ -55,6 +55,7 @@ class AttributionClassifierTrainer:
         )
 
         trainer.train()
+        self.tokenizer.save_pretrained(out_dir)
 
     def _compute_metrics(self, eval_pred):
         predictions, labels = eval_pred
