@@ -3,9 +3,8 @@ import openai
 
 
 class GPT35Paraphraser:
-    def __init__(self, openai_api_key: str, system_prompt: str, temperature=0.5) -> None:
+    def __init__(self, openai_api_key: str, temperature=0.5) -> None:
         super().__init__()
-        self.system_prompt = system_prompt
         self.temperature = temperature
         openai.api_key = openai_api_key
 
@@ -19,7 +18,6 @@ class GPT35Paraphraser:
                 frequency_penalty=0,
                 presence_penalty=0,
                 messages=[
-                    {"role": "system", "content": self.system_prompt},
                     {"role": "user", "content": text},
                 ]
             )['choices'][0]
