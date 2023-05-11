@@ -1,0 +1,17 @@
+# model and training
+model_name: slobert
+pretrained_model: EMBEDDIA/sloberta
+batch_size: 32
+epochs: 10
+lr: 0.0001
+gpu_id: 0
+
+# logging
+wandb_project: ner_sta
+models_path: /mnt/data/jpawlowski/university/nlp_models/
+log_per_steps: 10
+
+data_path: /home/jpawlowski/repos/sta-source-bias-detection/data/gpt35_entities/all_2023_cleaned_w_split.json
+
+max_margin_size: 1024
+max_length: 512
