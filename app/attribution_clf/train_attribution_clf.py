@@ -36,9 +36,9 @@ class AttributionClassifierTrainer:
             output_dir=out_dir,
             num_train_epochs=10,
             per_device_train_batch_size=48,
-            warmup_steps=50,
+            warmup_steps=500,
             weight_decay=0.001,
-            learning_rate=1e-5,
+            learning_rate=5e-6,
             logging_dir='./saved_model/logs',
             logging_steps=10,
             save_strategy="epoch",
@@ -79,6 +79,6 @@ class AttributionClassifierTrainer:
 
 
 if __name__ == '__main__':
-    trainer = AttributionClassifierTrainer('../../data/ner_results_labelled_1_5k_train.jsonl',
+    trainer = AttributionClassifierTrainer('../../data/ner_results_labelled_3k.jsonl',
                                            '../../data/ner_results_labelled_1_5k_test.jsonl')
     trainer.train()

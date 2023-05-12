@@ -4,7 +4,8 @@ import typer
 from app.exact_matching.match_media import MediaMatcher
 from app.utils import load_entites_csv
 from app.lemma import StanzaLemma
-
+from app.attribution_clf.inference import AttributionModel
+from typing import List, Dict
 
 typer_app = typer.Typer()
 
@@ -23,17 +24,14 @@ def exact_match_media(
 
 
 @typer_app.command()
-def say_hello(
-    name: str = typer.Option("olek", "--name", "-n")
-):
-    print(f"hello {name}")
+def process_time_range(star_date: str, end_date: str):
+    # TODO add api calls to retrieve articles
+    # TODO pass to ner and return a path to the entities file
+    ner_results: List[Dict] = ...
 
-
-@typer_app.command()
-def say_goodbye(
-    name: str = typer.Option("olek", "--name", "-n")
-):
-    print(f"goodbye {name}")
+    attribution_model = AttributionModel()
+    entities_in_texts = attribution_model.process_dataset(ner_results)
+    return entities_in_texts
 
 
 if __name__ == "__main__":
