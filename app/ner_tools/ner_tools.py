@@ -1,6 +1,7 @@
 from transformers import AutoTokenizer, AutoModelForTokenClassification
 from transformers import pipeline
 import xx_ent_wiki_sm
+import pandas as pd
 
 
 def find_entities_neighbourhood(
@@ -32,6 +33,47 @@ def find_entities_neighbourhood(
     return results
 
 
+def reformat_df(
+        base: pd.DataFrame,
+):
+    dfs = []
+    for i in range(len(base)):
+        for j in range(len(base['entities'].iloc[i])):
+            dfs.append(pd.DataFrame({'entity': base['entities'].iloc[i][j][0],
+                                     'context': base['entities'].iloc[i][j][2],
+                                     'label': base['entities'].iloc[i][j][1],
+                                     'article_id': base['id'].iloc[i],
+                                     'text': base['text']}, index=[0]))
+    return pd.concat(dfs, ignore_index=True)
+
+
+def __find_context_in_text__(context, text):
+    start = text.find(context)
+    end = start + len(context)
+    return start, end
+
+
+def postprocess_df(
+        df_to_process: pd.DataFrame,
+):
+    df_to_process['context'] = df_to_process.apply(lambda x: x['context'].replace(' .', '.').replace(' ,', ','), axis=1)
+    df_to_process['text'] = df_to_process.apply(lambda x: x['text'].replace('\n\n', ' '), axis=1)
+    df_to_process['context_start'] = df_to_process.apply(lambda x: __find_context_in_text__(x['context'], x['text'])[0], axis=1)
+    df_to_process['context_end'] = df_to_process.apply(lambda x: __find_context_in_text__(x['context'], x['text'])[1], axis=1)
+
+    df_to_process['entity_start'] = df_to_process.apply(lambda x: __find_context_in_text__(x['entity'], x['context'])[0] + x['context_start'], axis=1)
+
+    df_to_process['entity_end'] = df_to_process.apply(lambda x: __find_context_in_text__(x['entity'], x['context'])[1] + x['context_start'], axis=1)
+    df_to_process['found_entity'] = df_to_process.apply(lambda x: x['text'][x['entity_start']:x['entity_end']], axis=1)
+
+    df_to_process = df_to_process.drop_duplicates(subset=['article_id', 'entity_end'], keep='first')
+    df_to_process = df_to_process.drop_duplicates(subset=['article_id', 'entity_start'], keep='first')
+
+    res = df_to_process[df_to_process['entity'] == df_to_process['found_entity']]
+    res = res[res['entity'].apply(lambda x: len(x) > 1)]
+
+    return res
+
 class NER:
     def __init__(self,
                  model_name_or_path="./models/sloner"):
@@ -62,6 +104,7 @@ class NER:
             out.extend(find_entities_neighbourhood(keywords=result, text=smaller_text))
 
         return out
+
 
     def __find_entities_single_text__(self,
                                       text: str,
