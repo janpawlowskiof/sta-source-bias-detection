@@ -40,6 +40,23 @@ def scrap_articles(api_login, api_password, date_start, date_end):
     return df[['id', 'text']]
 
 
+@st.cache_data()
+def process_articles(article: dict):
+    text = article["text"]
+    entities = article['entities']
+    processed = []
+    
+    pos = 0
+    for entity in entities:
+        start, end = entity['start'], entity['end']
+        value, label = entity['entity_value'], entity['label']
+        processed.append(text[pos:start])
+        processed.append((value, 'test'))
+        pos = end
+
+    annotated_text(*processed)
+
+
 if __name__ == '__main__': 
     if 'data_scrapped' not in st.session_state:
         st.session_state.data_scrapped = None
@@ -55,28 +72,14 @@ if __name__ == '__main__':
 
         if st.button('Scrap'):
             st.session_state.data_scrapped = scrap_articles(api_login, api_password, date_start, date_end)
+            st.session_state.data_processed = None
 
     if st.session_state.data_scrapped is not None:
         with st.container():
             st.subheader("Articles preview")
             article_id = st.number_input('Article ID', 0, len(st.session_state.data_scrapped), 0)
 
-            st.text(st.session_state.data_scrapped['text'][article_id])
-            annotated_text(
-                "This ",
-                ("is", "verb"),
-                " some ",
-                ("annotated", "adj"),
-                ("text", "noun"),
-                " for those of ",
-                ("you", "pronoun"),
-                " who ",
-                ("like", "verb"),
-                " this sort of ",
-                ("thing", "noun"),
-                "."
-            )
+            if st.session_state.data_processed is None:
+                st.session_state.data_processed = SourceExtractor.default().extract_sources_from_texts(st.session_state.data_scrapped['text'])
 
-            #st.text(process_time_range(st.session_state.data_scrapped))
-            st.session_state.data_processed = SourceExtractor.default().extract_sources_from_texts(st.session_state.data_scrapped['text'].iloc[:5])
-
+            process_articles(st.session_state.data_processed[article_id])
