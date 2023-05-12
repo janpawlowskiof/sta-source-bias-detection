@@ -1,5 +1,5 @@
 outs:
-- md5: f2a498690bef9ba8506e9ca60100b7d7.dir
-  size: 1320700421
+- md5: 1bc6e837ebac9b0512cfc32201951055.dir
+  size: 441901768
   nfiles: 1
   path: source_extractor_models
