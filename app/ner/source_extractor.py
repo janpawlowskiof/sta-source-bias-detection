@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import pickle
 import re
 from typing import Dict, List
 from tqdm import tqdm
@@ -22,14 +23,19 @@ class SourceExtractor:
         import wandb
         artifact_dir = wandb.Api().artifact(wandb_checkpoint_path).download()
         model_path = Path(artifact_dir) / "model.ckpt"
-        model = SlobertaNERLightningModule.load_from_checkpoint(model_path)
+        model = SlobertaNERLightningModule.load_from_checkpoint(model_path, map_location="cpu").to("cpu")
         return cls(model=model.model, tokenizer=model.tokenizer)
 
+    def to_pickle(self, name):
+        pickle_path = ROOT_PATH / "source_extractor_models" / name
+        with pickle_path.open("wb") as pickle_file:
+            return pickle.dump(self, pickle_file)
+
     @classmethod
-    def from_default_model(cls, version: str = "model.ckpt") -> SourceExtractor:
-        checkpoint_path = ROOT_PATH / "source_extractor_models" / version
-        model = SlobertaNERLightningModule.load_from_checkpoint(checkpoint_path)
-        return cls(model=model.model, tokenizer=model.tokenizer)
+    def default(cls) -> SourceExtractor:
+        pickle_path = ROOT_PATH / "source_extractor_models" / "sloberta_v0.pickle"
+        with pickle_path.open("rb") as pickle_file:
+            return pickle.load(pickle_file)
 
     def extract_sources_from_texts(self, texts: List[str]) -> List[List[str]]:
         return [
