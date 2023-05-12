@@ -1,20 +1,13 @@
-from functools import partial
 from pathlib import Path
-from typing import Dict
-from tqdm import tqdm
 import typer
-import json5
-
-from pqdm.threads import pqdm
-import pandas as pd
 
 from app.exact_matching.match_media import MediaMatcher
-from app.gpt_processing.cleanup import GPT35EntitiesCleaner
-from app.gpt_processing.gpt35_api import GPT35Paraphraser
-from app.gpt_processing.caching import CachingParaphraser
-from app.utils import dump_json, load_entites_csv
+from app.utils import load_entites_csv
 from app.lemma import StanzaLemma
-
+from app.attribution_clf.inference import AttributionModel
+from typing import List, Dict
+from app.ner_tools.ner_tools import NER, reformat_df, postprocess_df
+import pandas as pd
 
 typer_app = typer.Typer()
 
@@ -32,69 +25,26 @@ def exact_match_media(
     matcher.process(input_path, output_path)
 
 
-@typer_app.command()
-def cleanup_entities(
-    input_path: Path = typer.Option(..., "--input", "-i"),
-    output_path: Path = typer.Option(..., "--output", "-o"),
+def ner_processing(
+        base: pd.DataFrame,
 ):
-    df = pd.read_json(input_path, lines=True)
-    rows = [row for id, row in df.iterrows()]
+    ner = NER(model_name_or_path="../models/sloner")
+    base['entities'] = base.apply(lambda x: ner.find_entities(x['text']), axis=1)
+    formatted_df = reformat_df(base)
+    result = postprocess_df(formatted_df)
 
-    cleaner = GPT35EntitiesCleaner()
-    output_rows = cleaner.cleanup_responses(rows)
-
-    dump_json(output_rows, output_path.with_suffix(".json"))
-
+    # return df as a list of dicts
+    return result.to_dict(orient='records')
 
 @typer_app.command()
-def gpt35_extract_entities(
-    input_path: Path = typer.Option(..., "--input", "-i"),
-    output_path: Path = typer.Option(..., "--output", "-o"),
-    api_key: str = typer.Option(..., "--api"),
-    head_n: int = typer.Option(None, "--head", "-h"),
-):
-    paraphraser = GPT35Paraphraser(api_key, system_prompt=GPT35_EXTRACT_ENTITIES_SYSTEM_PROMPT)
-    paraphraser = CachingParaphraser(paraphraser, cache_path=Path("./cache/gpt35_cache.pickle"))
-
-    df = pd.read_json(input_path, lines=True)
-    if head_n:
-        df = df.head(head_n)
-    all_rows = [row for index, row in df.iterrows()]
-    
-    try:
-        output_rows = pqdm(all_rows, partial(gpt_process_single_text, paraphraser=paraphraser), n_jobs=16, exception_behaviour='immediate')
-        output_path.parent.mkdir(exist_ok=True)
-        output_df = pd.DataFrame.from_records(output_rows)
-        output_df.to_json(output_path, lines=True, force_ascii=False, orient="records")
-    finally:
-        paraphraser.save_cache_to_file()
-
-
-def gpt_process_single_text(row: Dict, paraphraser: CachingParaphraser):
-    input_text = f"{row['lead']} {row['text']}"
-    output = paraphraser.process(input_text)
-    row["model_input"] = input_text
-    row["response"] = parse_response_to_json(output)
-    return row
-
-
-def parse_response_to_json(response: str):
-    try:
-        json5.loads(response)
-        return str(response)
-    except ValueError:
-        print(f"model response cannot be parsed into json. reponse: {response}")
-        return None
-
-GPT35_EXTRACT_ENTITIES_SYSTEM_PROMPT = """You are a tool to help find Media and Public Institutions that the journalist writing the text used as a source. 
-List only the sources that are explicitly mentioned like "as mentioned by", "according to".
-
-Return results in JSON, alongside the context, which is a part of the text in which the name of the entity is explicitly mentioned:
-{
-"media outlets": [{"text": "name_of_the_entity", "context": "context_before_entity name_of_the_entity context_after_the_entity"}],
-"institutions": [{"text": "name_of_the_entity", "context": "context_before_entity name_of_the_entity context_after_the_entity"}]
-}
-"""
+def process_time_range(star_date: str, end_date: str):
+    # TODO add api calls to retrieve articles
+    # TODO pass to ner and return a path to the entities file
+    retrieved_articles : pd.Dataframe = ...
+    ner_results = ner_processing(retrieved_articles)
+    attribution_model = AttributionModel()
+    entities_in_texts = attribution_model.process_dataset(ner_results)
+    return entities_in_texts
 
 
 if __name__ == "__main__":
