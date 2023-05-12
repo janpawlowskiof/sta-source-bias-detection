@@ -169,3 +169,4 @@ cython_debug/
 wandb
 artifacts/
 /source_extractor_models
+/source_extractor_data
