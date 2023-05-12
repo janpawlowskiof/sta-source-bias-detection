@@ -8,8 +8,7 @@ from typing import List, Dict
 
 class AttributionModel:
 
-    def __init__(self, model_path: str = os.path.join(os.path.dirname(__file__),
-                                                      'saved_model/results_b48/checkpoint')):
+    def __init__(self, model_path: str = os.path.join('../../models/attribution_clf')):
         self.model = AutoModelForSequenceClassification.from_pretrained(model_path)
         self.tokenizer = AutoTokenizer.from_pretrained(model_path)
         self.nlp = pipeline(task='text-classification', model=self.model, tokenizer=self.tokenizer, device=0)
