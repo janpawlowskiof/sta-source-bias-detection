@@ -25,7 +25,6 @@ def exact_match_media(
     matcher.process(input_path, output_path)
 
 
-@typer_app.command()
 def ner_processing(
         base: pd.DataFrame,
 ):
@@ -42,7 +41,6 @@ def process_time_range(star_date: str, end_date: str):
     # TODO add api calls to retrieve articles
     # TODO pass to ner and return a path to the entities file
     retrieved_articles : pd.Dataframe = ...
-    # ner_results: List[Dict] = ...
     ner_results = ner_processing(retrieved_articles)
     attribution_model = AttributionModel()
     entities_in_texts = attribution_model.process_dataset(ner_results)
