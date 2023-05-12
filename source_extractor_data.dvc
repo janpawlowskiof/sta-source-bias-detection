@@ -1,0 +1,5 @@
+outs:
+- md5: 910e59c01dfa67f87ad92512fce19930.dir
+  size: 170674045
+  nfiles: 11
+  path: source_extractor_data

@@ -164,3 +164,9 @@ cython_debug/
 #.idea/
 /data
 /models
+/.vscode
+/cache
+wandb
+artifacts/
+/source_extractor_models
+/source_extractor_data
