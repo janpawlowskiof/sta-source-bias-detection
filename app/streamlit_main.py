@@ -5,6 +5,7 @@ import numpy as np
 from datetime import datetime
 from annotated_text import annotated_text
 
+from app.run import process_time_range
 
 @st.cache_data(show_spinner=False)
 def scrap_articles(api_login, api_password, date_start, date_end):
@@ -57,7 +58,6 @@ if __name__ == '__main__':
             article_id = st.number_input('Article ID', 0, len(st.session_state.data_scrapped), 0)
 
             st.text(st.session_state.data_scrapped['content'][article_id])
-
             annotated_text(
                 "This ",
                 ("is", "verb"),
@@ -72,6 +72,9 @@ if __name__ == '__main__':
                 ("thing", "noun"),
                 "."
             )
+
+            st.text(process_time_range(st.session_state.data_scrapped))
+
 
 
 
