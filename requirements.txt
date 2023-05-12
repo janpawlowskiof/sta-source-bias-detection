@@ -1,0 +1,11 @@
+datasets==2.12.0
+json5==0.9.11
+numpy==1.24.1
+pandas==2.0.1
+pqdm==0.2.0
+scikit-learn==1.2.2
+spacy==3.5.2
+stanza==1.5.0
+tqdm==4.65.0
+transformers==4.28.1
+typer==0.7.0
