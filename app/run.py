@@ -7,6 +7,7 @@ from app.lemma import StanzaLemma
 from app.attribution_clf.inference import AttributionModel
 from typing import List, Dict
 from app.ner_tools.ner_tools import NER, reformat_df, postprocess_df
+from app import ROOT_PATH
 import pandas as pd
 
 typer_app = typer.Typer()
@@ -28,7 +29,7 @@ def exact_match_media(
 def ner_processing(
         base: pd.DataFrame,
 ):
-    ner = NER(model_name_or_path="../models/sloner")
+    ner = NER(model_name_or_path=str(ROOT_PATH / "models" / "sloner"))
     base['entities'] = base.apply(lambda x: ner.find_entities(x['text']), axis=1)
     formatted_df = reformat_df(base)
     result = postprocess_df(formatted_df)
