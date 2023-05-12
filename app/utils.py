@@ -27,4 +27,4 @@ def remove_punctuation(text: str) -> str:
 
 
 def remove_multiple_spaces(text: str) -> str:
-    return re.sub(' +', ' ', text)
+    return re.sub(' +', ' ', text).lstrip(" ").strip(" ")
