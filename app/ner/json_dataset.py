@@ -9,11 +9,11 @@ from transformers import PreTrainedTokenizer
 
 
 class JsonDataset(Dataset):
-    def __init__(self, path: Path, tokenizer: PreTrainedTokenizer, all_labels: List[str], split: str, max_margin_size: int, max_length: int):
+    def __init__(self, path: Path, tokenizer: PreTrainedTokenizer, split: str, max_margin_size: int, max_length: int):
         super().__init__()
         self.tokenizer = tokenizer
         self.tokenizer = tokenizer
-        self.all_labels = all_labels
+        
         self.max_margin_size = max_margin_size
         self.max_length = max_length
 
@@ -22,6 +22,14 @@ class JsonDataset(Dataset):
                 entry for entry in json.load(file) 
                 if entry["split"] == split
             ]
+
+        self.entity_label_to_word_label: Dict[str, str] = {
+            "True_org": "SourceOrg",
+            "True_per": "SourcePer",
+            "False_org": "NonSource",
+            "False_per": "NonSource",
+        }
+        self.all_labels = ["O", "B-SourceOrg", "I-SourceOrg", "B-SourcePer", "I-SourcePer", "B-NonSource", "I-NonSource"]
 
     def __len__(self):
         return len(self.entries)
@@ -51,29 +59,29 @@ class JsonDataset(Dataset):
 
         # assigning classes to words
         words = text.split(" ")
-        words_labels = ["O" for _ in words]
-        char_to_word = []
+        char_to_word = {}
+        char_index = 0
         for word_index, word in enumerate(words):
-            for _ in range(len(word) + 1):
-                char_to_word.append(word_index)
+            for _ in range(len(word)):
+                assert char_index not in char_to_word
+                char_to_word[char_index] = word_index
+                char_index += 1
+            # space after every word
+            char_index += 1
 
-        char_to_word = dict(enumerate(char_to_word))
-        # +1 bacause of trailing space, but no harm done otherwise
-        assert len(char_to_word) == len(text) + 1
-
+        words_labels = ["O" for _ in words]
         for entity in entry["entities"]:
-            start_char_index = entity["start"] - num_skipped_characters
-            if start_char_index not in char_to_word:
-                continue
-            first_char_in_entity_index = char_to_word[start_char_index]
+            index_of_first_word_in_entity = None
             for char_index in range(entity["start"] - num_skipped_characters, entity["end"] - num_skipped_characters):
                 if char_index not in char_to_word:
                     continue
                 word_index = char_to_word[char_index]
-                if word_index == first_char_in_entity_index:
-                    words_labels[word_index] = f"B-entity"
+                word_label_suffix = self.entity_label_to_word_label[entity["label"]]
+                index_of_first_word_in_entity = index_of_first_word_in_entity or word_index
+                if word_index == index_of_first_word_in_entity:
+                    words_labels[word_index] = f"B-{word_label_suffix}"
                 else:
-                    words_labels[word_index] = f"I-entity"
+                    words_labels[word_index] = f"I-{word_label_suffix}"
 
         words_labels_ids = [self.all_labels.index(word_label) for word_label in words_labels]
 

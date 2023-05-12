@@ -13,25 +13,24 @@ from app.ner.json_dataset import JsonDataset
 
 
 class JsonDataModule(pl.LightningDataModule):
-    def __init__(self, path: Path, batch_size: int, tokenizer: PreTrainedTokenizer, all_labels: List[str], max_margin_size: int, max_length: int):
+    def __init__(self, path: Path, batch_size: int, tokenizer: PreTrainedTokenizer, max_margin_size: int, max_length: int):
         super().__init__()
         self.path: Path = Path(path)
         self.batch_size: int = batch_size
         self.tokenizer: PreTrainedTokenizer = tokenizer
-        self.all_labels: List[str] = all_labels
         self.max_margin_size: int = max_margin_size
         self.max_length: int = max_length
 
     def train_dataloader(self):
-        dataset = JsonDataset(self.path, split="train", tokenizer=self.tokenizer, all_labels=self.all_labels, max_margin_size=self.max_margin_size, max_length=self.max_length)
+        dataset = JsonDataset(self.path, split="train", tokenizer=self.tokenizer, max_margin_size=self.max_margin_size, max_length=self.max_length)
         return DataLoader(dataset, shuffle=True, num_workers=16, batch_size=self.batch_size)
 
     def val_dataloader(self):
-        dataset = JsonDataset(self.path, split="dev", tokenizer=self.tokenizer, all_labels=self.all_labels, max_margin_size=self.max_margin_size, max_length=self.max_length)
+        dataset = JsonDataset(self.path, split="dev", tokenizer=self.tokenizer, max_margin_size=self.max_margin_size, max_length=self.max_length)
         return DataLoader(dataset, shuffle=False, num_workers=16, batch_size=self.batch_size)
 
     def test_dataloader(self):
-        dataset = JsonDataset(self.path, split="test", tokenizer=self.tokenizer, all_labels=self.all_labels, max_length=self.max_length)
+        dataset = JsonDataset(self.path, split="test", tokenizer=self.tokenizer, max_margin_size=self.max_margin_size, max_length=self.max_length)
         return DataLoader(dataset, shuffle=False, num_workers=16, batch_size=self.batch_size)
 
     def predict_dataloader(self):

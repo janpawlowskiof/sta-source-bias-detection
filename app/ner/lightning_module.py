@@ -9,11 +9,16 @@ from typing import List, Any
 
 
 class SlobertaNERLightningModule(pl.LightningModule):
-    def __init__(self, all_labels: List[str], pretrained_model: str, lr: float = 0.0001):
+    def __init__(self, pretrained_model: str, lr: float = 0.0001):
         super().__init__()
-        self.all_labels = all_labels
+        self.save_hyperparameters()
+
+        self.all_labels = ["O", "B-SourceOrg", "I-SourceOrg", "B-SourcePer", "I-SourcePer", "B-NonSource", "I-NonSource"]
+        id2label = dict(enumerate(self.all_labels))
+        label2id = {v: k for k, v in id2label.items()}
+
         self.model: AutoModelForTokenClassification = AutoModelForTokenClassification.from_pretrained(
-            pretrained_model, num_labels=len(self.all_labels)
+            pretrained_model, id2label=id2label, label2id=label2id,
         )
         self.tokenizer: AutoTokenizer = AutoTokenizer.from_pretrained(pretrained_model)
         self.lr: float = lr
@@ -22,9 +27,48 @@ class SlobertaNERLightningModule(pl.LightningModule):
         super().setup(stage)
         self.seqeval = evaluate.load("seqeval")
 
-    def forward(self, input_ids, attention_mask, labels):
+    def forward(self, input_ids, attention_mask, labels=None):
         return self.model(input_ids=input_ids, attention_mask=attention_mask, labels=labels)
     
+    def predict(self, text: str):
+        tokenized_input = self.tokenizer(
+            text,
+            truncation=True,
+            max_length=512,
+            padding="max_length",
+            return_tensors="pt"
+        )
+        input_ids=tokenized_input["input_ids"]
+        model_output = self.model(
+            input_ids=input_ids, attention_mask=tokenized_input["attention_mask"]
+        )
+        [input_ids] = input_ids
+        [prediction_ids] = torch.argmax(model_output.logits, dim=2)
+
+        entry_results = []
+        
+        current_entity_ids = []
+        current_entity_class = None
+        for input_id, prediction_id in zip(input_ids, prediction_ids, strict=True):
+            label = self.all_labels[prediction_id]
+            if label.startswith("I-") and current_entity_ids:
+                current_entity_ids.append(input_id)
+            elif label == "O" or label.startswith("B-"):
+                if current_entity_ids:
+                    entity_text = self.tokenizer.decode(current_entity_ids)
+                    entry_results.append((current_entity_class, entity_text))
+                    current_entity_ids = []
+                    current_entity_class = None
+                if label.startswith("B-"):
+                    current_entity_class = label.removeprefix("B-")
+                    current_entity_ids.append(input_id)
+            else:
+                raise RuntimeError(f"Found uknown label {label} when decoding")
+        if current_entity_ids:
+            entry_results.append(self.tokenizer.decode(current_entity_ids))
+
+        return entry_results
+
     def training_step(self, batch, **kwargs: Any):
         input_ids = batch["input_ids"]
         attention_mask = batch["attention_mask"]
